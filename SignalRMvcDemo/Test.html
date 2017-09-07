@@ -1,0 +1,133 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title></title>
+    <meta charset="utf-8" />
+    <link href="Content/bootstrap.min.css" rel="stylesheet" />
+    <link href="Lib/toastr/toastr.min.css" rel="stylesheet" />
+</head>
+<body>
+    <div class="panel panel-default">
+        <div class="panel-body">
+            <h1>分布式-消息推送测试</h1>
+        </div>
+    </div>
+    <span>ConnectionId：</span>
+    <input type="text" id="ConnectionId" readonly value="">
+    <span>当前用户名称：</span>
+    <input type="text" id="UserName" readonly value="">
+    <hr>
+    <span>在线用户数量：</span>
+    <input type="text" id="userCount" readonly value="">
+    <hr>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>ConnectionId</th>
+                <th>UserName</th>
+            </tr>
+        </thead>
+        <tbody id="tbody1"></tbody>
+    </table>
+    <span>接收用户:</span><select id="toUser"></select>
+    <input type="text" id="message" />
+    <input id="send" type="button" value="发送" />
+    <input id="sendAll" type="button" value="发送消息（所有客户端）" />
+    <script src="Scripts/jquery-1.10.2.min.js"></script>
+    <script src="Lib/toastr/toastr.min.js"></script>
+    <script src="Lib/iNotify/iNotify.js"></script>
+    <script src="Scripts/bootstrap.min.js"></script>
+    <script src="Scripts/jquery.signalR-2.2.2.js"></script>
+    <script src='/SignalR/hubs'></script>
+    <script type='text/javascript'>
+        $(function () {
+            $.connection.hub.url = 'http://localhost:10086/signalr';
+            //引用自动生成的代理，MessageHub是HubName注解属性
+            var work = $.connection.MessageHub;
+
+            //对应后端的SendPrivateMessage函数，消息接收函数
+            work.client.receivePrivateMessage = function (connectionId, user, message) {
+                //$('#messgaeInfo').append(message + '</br>');
+                toastr.info('发送内容：' + message, "发送人：" + user)
+                Notify.player();
+                Notify.setTitle(true);
+                Notify.setTitle('你有新的消息！');
+            };
+
+            //对应后端的SendMessage函数，消息接收函数
+            work.client.AllSend = function (name, message) {
+                toastr.info('发送内容：' + message, "群发消息发生人：" + name)
+                Notify.player();
+                Notify.setTitle(true);
+                Notify.setTitle('你有新的消息！');
+            };
+
+            //后端SendLogin调用后，产生的loginUser回调
+            work.client.onConnected = function (connnectId, userName, OnlineUsers) {
+                reloadUser(OnlineUsers);
+            };
+            work.client.onUserDisconnected = function (OnlineUsers) {
+                reloadUser(OnlineUsers);
+            };
+            //hub连接开启
+            $.connection.hub.start().done(function () {
+                $('#UserName').val(prompt('请输入昵称:', ''));
+                var username = $('#UserName').val();
+                $('#ConnectionId').val($.connection.MessageHub.connection.id);
+                //发送上线信息
+                work.server.register(username);
+
+                //点击按钮，发送消息
+                $('#send').click(function () {
+                    var friend = $('#toUser').val();
+                    //调用后端函数，发送指定消息
+                    work.server.sendPrivateMessage(friend, $("#message").val());
+                });
+
+                //点击按钮，发送消息
+                $('#sendAll').click(function () {
+                    //调用后端函数，发送指定消息
+                    work.server.allSend($('#UserName').val(), $("#message").val());
+                });
+            });
+        });
+
+
+        //重新加载用户列表
+        var reloadUser = function (userlist) {
+            $("#tbody1").empty();
+            $("#toUser").empty();
+            $("#userCount").val(userlist.length);
+            for (i = 0; i < userlist.length; i++) {
+                $("#tbody1").append("<tr><td>" + userlist[i].ConnectionId + "</td><td>" + userlist[i].UserName + "</td></tr>");
+                $("#toUser").append("<option value=" + userlist[i].ConnectionId + ">" + userlist[i].ConnectionId + ':[' + userlist[i].UserName + "]</option>");
+            }
+        }
+
+        //toastr配置
+        toastr.options = {
+            closeButton: true,
+            debug: false,
+            progressBar: true,
+            positionClass: "toast-bottom-right",
+            onclick: null,
+            showDuration: "300",
+            hideDuration: "1000",
+            timeOut: "5000",
+            extendedTimeOut: "1000",
+            showEasing: "swing",
+            hideEasing: "linear",
+            showMethod: "fadeIn",
+            hideMethod: "fadeOut"
+        };
+
+        //iNotify配置
+        var Notify = new iNotify({
+            audio: {
+                file: ['Sound/msg.mp3']
+            },
+        });
+    </script>
+</body>
+</html>

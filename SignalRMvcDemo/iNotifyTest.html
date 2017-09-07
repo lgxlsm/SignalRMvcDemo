@@ -1,0 +1,24 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+</head>
+<body>
+    <script src="Lib/iNotify/iNotify.js"></script>
+    <a href="javascript:inotifyTest()">请点击我测试一下！</a>
+    <script type="text/javascript">
+        var iN = new iNotify({
+            audio: {
+                file: ['Sound/msg.mp3']
+            },
+        });
+
+        function inotifyTest() {
+            iN.player();
+            iN.setTitle(true);
+            iN.setTitle('你有新的消息！');
+        }
+    </script>
+</body>
+</html>
